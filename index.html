@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Нумерология Пифагора</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body{font-family:sans-serif;margin:20px;}
+    label,input{display:block;width:100%;margin-bottom:12px;font-size:1rem;}
+    button{padding:10px 16px;font-size:1rem;}
+  </style>
+</head>
+<body>
+  <h2>Введите данные</h2>
+
+  <label>Ф.И.О. (кириллица)
+    <input id="fio" placeholder="Иванов Иван Иванович">
+  </label>
+
+  <label>Дата рождения (ДД.ММ.ГГГГ)
+    <input id="dob" placeholder="20.07.1985">
+  </label>
+
+  <button id="send">Рассчитать</button>
+
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();                            // разворачиваем окно
+
+    document.getElementById('send').onclick = () => {
+      const fullName  = document.getElementById('fio').value.trim();
+      const birthDate = document.getElementById('dob').value.trim();
+
+      if(!/^\d{2}\.\d{2}\.\d{4}$/.test(birthDate) || fullName.length < 3){
+        alert('Проверьте корректность данных'); return;
+      }
+      tg.sendData(JSON.stringify({ fullName, birthDate })); // ≤4096 байт
+      tg.close();  // необязательно, но красиво сворачивает WebApp
+    };
+  </script>
+</body>
+</html>

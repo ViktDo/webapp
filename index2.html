@@ -39,7 +39,7 @@ document.getElementById('send').onclick = () => {
 
   // отправляем webhook
 fetch('https://n8n.bot-craft.ru/webhook-test/c019c87f-6f02-4e8c-9caa-ffa39e462aba', {
-  method: 'GET',
+  method: 'POST',
   headers: {'Content-Type':'application/json'},
   body: JSON.stringify({
     fullName, birthDate,

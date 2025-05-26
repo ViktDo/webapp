@@ -5,9 +5,11 @@
   <title>Нумерология Пифагора</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
-    body{font-family:sans-serif;margin:20px;}
-    label,input{display:block;width:100%;margin-bottom:12px;font-size:1rem;}
-    button{padding:10px 16px;font-size:1rem;}
+    body{font-family:sans-serif;margin:20px;line-height:1.4;}
+    label{display:block;margin-bottom:12px;}
+    input{width:100%;padding:8px;font-size:1rem;margin-top:4px;}
+    button{padding:10px 16px;font-size:1rem;margin-top:8px;}
+    #status{margin-top:18px;color:#0a7;}
   </style>
 </head>
 <body>
@@ -21,22 +23,38 @@
     <input id="dob" placeholder="20.07.1985">
   </label>
 
-  <button id="send">Рассчитать</button>
+  <button id="send">Отправить</button>
+  <div id="status"></div>
 
-  <script>
-    const tg = window.Telegram.WebApp;
-    tg.expand();                            // разворачиваем окно
+<script>
+const tg = window.Telegram.WebApp;
+tg.expand();                      // разворачиваем WebView
 
-    document.getElementById('send').onclick = () => {
-      const fullName  = document.getElementById('fio').value.trim();
-      const birthDate = document.getElementById('dob').value.trim();
+document.getElementById('send').onclick = () => {
+  const fullName  = document.getElementById('fio').value.trim();
+  const birthDate = document.getElementById('dob').value.trim();
 
-      if(!/^\d{2}\.\d{2}\.\d{4}$/.test(birthDate) || fullName.length < 3){
-        alert('Проверьте корректность данных'); return;
-      }
-      tg.sendData(JSON.stringify({ fullName, birthDate })); // ≤4096 байт
-      tg.close();  // необязательно, но красиво сворачивает WebApp
-    };
-  </script>
+  if (!/^\d{2}\.\d{2}\.\d{4}$/.test(birthDate) || fullName.length < 3){
+    alert('Проверьте корректность ввода'); return;
+  }
+
+  // отправляем webhook
+fetch('https://n8n.bot-craft.ru/webhook-test/c019c87f-6f02-4e8c-9caa-ffa39e462aba', {
+  method: 'GET',
+  headers: {'Content-Type':'application/json'},
+  body: JSON.stringify({
+    fullName, birthDate,
+    initData: tg.initData   // подпись Telegram (для проверки)
+  })
+});
+
+  // информируем пользователя
+  document.getElementById('status').textContent =
+    '✅ Данные отправлены, расчёт придёт сообщением...';
+
+  // можно закрыть, но удобнее оставить форму
+  // tg.close();
+};
+</script>
 </body>
 </html>

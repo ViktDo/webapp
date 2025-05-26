@@ -94,7 +94,7 @@ sendBtn.onclick = async () => {
     }
 
   statusEl.textContent = '✅ Данные отправлены, закрываю…';
-setTimeout(() => tg.close(), 1200);
+setTimeout(() => tg.close(), 1200); //задержка 1,2 сек
   } catch (err) {
     console.error(err);
     statusEl.textContent = '❌ Не удалось отправить данные. Попробуйте позже.';

@@ -95,7 +95,7 @@ sendBtn.onclick = async () => {
 
     statusEl.textContent =
       '✅ Данные отправлены.\nБот пришлёт расчёт в личном сообщении.';
-    // tg.close(); // можно закрыть WebApp, если не нужно оставаться на странице
+     tg.close(); // можно закрыть WebApp, если не нужно оставаться на странице
   } catch (err) {
     console.error(err);
     statusEl.textContent = '❌ Не удалось отправить данные. Попробуйте позже.';

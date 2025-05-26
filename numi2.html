@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Нумерология Пифагора</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body{font-family:sans-serif;margin:20px;line-height:1.4;}
+    label{display:block;margin-bottom:12px;}
+    input{width:100%;padding:8px;font-size:1rem;margin-top:4px;}
+    button{padding:10px 16px;font-size:1rem;margin-top:8px;}
+    #result{margin-top:24px;white-space:pre-wrap;}
+    table{border-collapse:collapse;margin-top:8px;}
+    td{border:1px solid #aaa;padding:4px 8px;text-align:center;width:32px;}
+  </style>
+</head>
+<body>
+  <h2>Введите данные</h2>
+
+  <label>Ф.И.О. (кириллица)
+    <input id="fio" placeholder="Иванов Иван Иванович">
+  </label>
+
+  <label>Дата рождения (ДД.ММ.ГГГГ)
+    <input id="dob" placeholder="20.07.1985">
+  </label>
+
+  <button id="send">Рассчитать</button>
+
+  <div id="result"></div>
+
+<script>
+/* ---------- Справочные таблицы и функции ---------- */
+
+// ГОСТ-подобная транслитерация
+const translit = {
+'А':'A','Б':'B','В':'V','Г':'G','Д':'D','Е':'E','Ё':'E','Ж':'ZH','З':'Z',
+'И':'I','Й':'I','К':'K','Л':'L','М':'M','Н':'N','О':'O','П':'P','Р':'R',
+'С':'S','Т':'T','У':'U','Ф':'F','Х':'KH','Ц':'TS','Ч':'CH','Ш':'SH','Щ':'SHCH',
+'Ы':'Y','Э':'E','Ю':'YU','Я':'YA','Ь':'','Ъ':''
+};
+
+// A=1… I=9, J=1…
+const letterToNum = l => ((l.charCodeAt(0)-65)%9)+1;
+
+// сводим к 1-9, оставляя 11 и 22
+const reduce = n=>{
+  while(n>9 && ![11,22].includes(n))
+    n = n.toString().split('').reduce((a,b)=>a+ +b,0);
+  return n;
+};
+
+const vowels = new Set(['A','E','I','O','U','Y']);
+
+const meaning = {
+ 1:'Лидерство, независимость, инициатива.',
+ 2:'Дипломатия, партнёрство, баланс.',
+ 3:'Творчество, коммуникабельность, оптимизм.',
+ 4:'Практичность, трудолюбие, стабильность.',
+ 5:'Свобода, перемены, приключения.',
+ 6:'Забота, ответственность, гармония.',
+ 7:'Аналитика, духовность, мудрость.',
+ 8:'Амбиции, материальный успех, власть.',
+ 9:'Сострадание, идеализм, завершённость.',
+11:'Интуиция, вдохновение, просветление.',
+22:'Большие замыслы, практичный идеализм.'
+};
+
+/* ---------- Основная логика ---------- */
+
+function calcNumerology(fullName, birthDate){
+  // 1. транслитерация
+  const latin = fullName.toUpperCase().split('')
+    .map(ch=>translit[ch]??ch).join('');
+  const clean = latin.replace(/[^A-Z]/g,'');
+
+  // 2. суммы букв
+  let expr=0, vow=0, cons=0;
+  for(const l of clean){
+    const n=letterToNum(l);
+    expr+=n;
+    vowels.has(l)?vow+=n:cons+=n;
+  }
+
+  // 3. числа из даты
+  const digits=birthDate.replace(/\D/g,'').split('').map(Number);
+  const lifePath   = reduce(digits.reduce((a,b)=>a+b,0));
+  const birthDay   = reduce(+birthDate.split('.')[0]);
+
+  // 4. производные числа
+  const expression = reduce(expr);
+  const soul       = reduce(vow);
+  const personality= reduce(cons);
+  const maturity   = reduce(lifePath+expression);
+
+  // 5. психоматрица
+  const cnt={1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0};
+  digits.forEach(d=>{if(d)cnt[d]++});
+  const matrix=[
+    [cnt[1],cnt[4],cnt[7]],
+    [cnt[2],cnt[5],cnt[8]],
+    [cnt[3],cnt[6],cnt[9]]
+  ];
+
+  return {
+    latin, lifePath, birthDay,
+    expression, soul, personality, maturity,
+    matrix
+  };
+}
+
+/* ---------- Рендер результата ---------- */
+
+function render(res){
+  const rows = res.matrix.map(r=>{
+    return '<tr>'+r.map(c=>`<td>${c||''}</td>`).join('')+'</tr>';
+  }).join('');
+
+  return `
+<b>Имя (латиница):</b> ${res.latin}<br>
+<b>Дата рождения:</b> ${document.getElementById('dob').value}<br><br>
+
+<b>Число Жизненного Пути:</b> ${res.lifePath} — ${meaning[res.lifePath]}<br>
+<b>Число Выражения (Имени):</b> ${res.expression} — ${meaning[res.expression]}<br>
+<b>Число Души:</b> ${res.soul} — ${meaning[res.soul]}<br>
+<b>Число Личности:</b> ${res.personality} — ${meaning[res.personality]}<br>
+<b>Число Рождения:</b> ${res.birthDay} — ${meaning[res.birthDay]}<br>
+<b>Число Зрелости:</b> ${res.maturity} — ${meaning[res.maturity]}<br><br>
+
+<b>Психоматрица:</b><br>
+<table>${rows}</table>
+`;
+}
+
+/* ---------- Обработка кнопки ---------- */
+
+const tg = window.Telegram.WebApp;
+tg.expand();
+
+document.getElementById('send').onclick = ()=>{
+  const fullName = document.getElementById('fio').value.trim();
+  const birthDate= document.getElementById('dob').value.trim();
+
+  if(!/^\d{2}\.\d{2}\.\d{4}$/.test(birthDate) || fullName.length<3){
+    alert('Проверьте корректность ввода'); return;
+  }
+
+  const result = calcNumerology(fullName, birthDate);
+  document.getElementById('result').innerHTML = render(result);
+
+  // при желании отправляем данные боту
+  //tg.sendData(JSON.stringify({fullName,birthDate,...result}));
+
+  // можно не закрывать WebApp, чтобы пользователь видел результат
+};
+</script>
+</body>
+</html>

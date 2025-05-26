@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Нумерология Пифагора</title>
+
+  <!-- SDK Telegram Mini-App (не помешает и вне Telegram) -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <style>
+    :root { color-scheme: light dark; }
+    body   { font-family: system-ui, sans-serif; margin: 20px; line-height: 1.4; }
+    h1     { font-size: 1.3rem; margin-bottom: 1rem; }
+    label  { display: block; margin-bottom: 12px; }
+    input  { width: 100%; padding: 8px; font-size: 1rem; margin-top: 4px;
+             border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+    button { padding: 10px 16px; font-size: 1rem; margin-top: 8px;
+             border: none; border-radius: 4px; cursor: pointer;
+             background: #2a9df4; color: #fff; }
+    button:disabled { background:#888; cursor: default; }
+    #status { margin-top: 18px; font-weight: 500; }
+  </style>
+</head>
+
+<body>
+  <h1>Введите данные для расчёта</h1>
+
+  <label>Ф.И.О. (кириллица)
+    <input id="fio" placeholder="Иванов Иван Иванович" autocomplete="name" />
+  </label>
+
+  <label>Дата рождения (ДД.ММ.ГГГГ)
+    <input id="dob" placeholder="20.07.1985" />
+  </label>
+
+  <button id="send">Отправить</button>
+  <div id="status"></div>
+
+<script>
+/* ---------- глобальные переменные ---------- */
+const WEBHOOK_URL =
+  'https://n8n.bot-craft.ru/webhook-test/c019c87f-6f02-4e8c-9caa-ffa39e462aba';
+
+const tg = window.Telegram?.WebApp ?? {          // безопасный «заглушка-SDK»
+  initData: '',
+  initDataUnsafe: {},
+  expand(){},
+  close(){},
+};
+
+tg.expand();                                     // разворачиваем окно, если это Telegram
+
+/* ---------- проверка и отправка ---------- */
+const fioInput = document.getElementById('fio');
+const dobInput = document.getElementById('dob');
+const statusEl = document.getElementById('status');
+const sendBtn  = document.getElementById('send');
+
+sendBtn.onclick = async () => {
+  const fullName  = fioInput.value.trim();
+  const birthDate = dobInput.value.trim();
+
+  if (!/^\d{2}\.\d{2}\.\d{4}$/.test(birthDate) || fullName.length < 3) {
+    alert('Проверьте корректность ввода:\n' +
+          '— дата: ДД.ММ.ГГГГ\n— ФИО не короче трёх символов.');
+    return;
+  }
+
+  // блокируем повторные клики
+  sendBtn.disabled = true;
+  statusEl.textContent = '⏱ Отправляю данные …';
+
+  const body = {
+    fullName,
+    birthDate,
+    // подпись Telegram — пригодится для проверки запроса в n8n
+    initData : tg.initData,
+    queryId  : tg.initDataUnsafe?.query_id ?? null,
+    user     : tg.initDataUnsafe?.user     ?? null
+  };
+
+  try {
+    const resp = await fetch(WEBHOOK_URL, {
+      method : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body   : JSON.stringify(body),
+      // если сервер не возвращает CORS-заголовок, раскомментируйте строку ниже:
+      // mode   : 'no-cors'
+    });
+
+    if (!resp.ok && resp.type !== 'opaque') {
+      throw new Error(`HTTP ${resp.status}`);
+    }
+
+    statusEl.textContent =
+      '✅ Данные отправлены.\nБот пришлёт расчёт в личном сообщении.';
+    // tg.close(); // можно закрыть WebApp, если не нужно оставаться на странице
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = '❌ Не удалось отправить данные. Попробуйте позже.';
+  } finally {
+    sendBtn.disabled = false;
+  }
+};
+</script>
+</body>
+</html>

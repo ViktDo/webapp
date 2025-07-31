@@ -2,40 +2,129 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Нумерология Пифагора</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Колесо фортуны</title>
   <style>
-    body{font-family:sans-serif;margin:20px;}
-    label,input{display:block;width:100%;margin-bottom:12px;font-size:1rem;}
-    button{padding:10px 16px;font-size:1rem;}
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background: #f0f0f0;
+      font-family: sans-serif;
+    }
+    #wheel {
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      border: 10px solid #333;
+      position: relative;
+      overflow: hidden;
+      transform: rotate(0deg);
+      transition: transform 4s cubic-bezier(0.33, 1, 0.68, 1);
+    }
+    .sector {
+      position: absolute;
+      width: 50%;
+      height: 50%;
+      top: 50%;
+      left: 50%;
+      transform-origin: 0% 0%;
+      background: #fff;
+      border: 1px solid #ccc;
+    }
+    #spinButton {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 18px;
+    }
+    #pointer {
+      width: 0;
+      height: 0;
+      border-left: 20px solid transparent;
+      border-right: 20px solid transparent;
+      border-bottom: 30px solid red;
+      position: absolute;
+      top: -30px;
+      left: calc(50% - 20px);
+    }
+    #result {
+      margin-top: 20px;
+      font-size: 20px;
+    }
   </style>
 </head>
 <body>
-  <h2>Введите данные</h2>
-
-  <label>Ф.И.О. (кириллица)
-    <input id="fio" placeholder="Иванов Иван Иванович">
-  </label>
-
-  <label>Дата рождения (ДД.ММ.ГГГГ)
-    <input id="dob" placeholder="20.07.1985">
-  </label>
-
-  <button id="send">Рассчитать</button>
+  <div id="pointer"></div>
+  <div id="wheel"></div>
+  <button id="spinButton">Крутить!</button>
+  <div id="result"></div>
 
   <script>
-    const tg = window.Telegram.WebApp;
-    tg.expand();                            // разворачиваем окно
+    const prizes = [
+      'Скидка 10%',
+      'Скидка 50%',
+      'Пусто',
+      'Бесплатный товар',
+      'Пусто',
+      'Скидка 20%'
+    ];
 
-    document.getElementById('send').onclick = () => {
-      const fullName  = document.getElementById('fio').value.trim();
-      const birthDate = document.getElementById('dob').value.trim();
+    const wheel = document.getElementById('wheel');
+    const result = document.getElementById('result');
 
-      if(!/^\d{2}\.\d{2}\.\d{4}$/.test(birthDate) || fullName.length < 3){
-        alert('Проверьте корректность данных'); return;
-      }
-      tg.sendData(JSON.stringify({ fullName, birthDate })); // ≤4096 байт
-      tg.close();  // необязательно, но красиво сворачивает WebApp
+    const sectorAngle = 360 / prizes.length;
+
+    prizes.forEach((prize, i) => {
+      const sector = document.createElement('div');
+      sector.className = 'sector';
+      sector.style.transform = `rotate(${i * sectorAngle}deg) skewY(${90 - sectorAngle}deg)`;
+      sector.style.background = i % 2 === 0 ? '#f9c74f' : '#90be6d';
+
+      const text = document.createElement('div');
+      text.style.transform = `skewY(-${90 - sectorAngle}deg) rotate(${sectorAngle / 2}deg)`;
+      text.style.position = 'absolute';
+      text.style.top = '10%';
+      text.style.left = '10%';
+      text.style.width = '80%';
+      text.style.textAlign = 'center';
+      text.style.fontSize = '14px';
+      text.innerText = prize;
+
+      sector.appendChild(text);
+      wheel.appendChild(sector);
+    });
+
+    let spinning = false;
+
+    document.getElementById('spinButton').onclick = function () {
+      if (spinning) return;
+      spinning = true;
+      result.innerText = '';
+
+      const selected = Math.floor(Math.random() * prizes.length);
+      const degreesPerPrize = 360 / prizes.length;
+      const rotateTo = (360 * 5) + (360 - (selected * degreesPerPrize) - (degreesPerPrize / 2));
+
+      wheel.style.transition = 'transform 4s cubic-bezier(0.33, 1, 0.68, 1)';
+      wheel.style.transform = `rotate(${rotateTo}deg)`;
+
+      setTimeout(() => {
+        result.innerText = `Ваш приз: ${prizes[selected]}`;
+
+        // Пример отправки данных в n8n Webhook (заменить URL):
+        fetch('https://YOUR_N8N_WEBHOOK_URL', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: Telegram.WebApp.initDataUnsafe?.user?.id || null,
+            result: prizes[selected]
+          })
+        });
+
+        spinning = false;
+      }, 4000);
     };
   </script>
 </body>
